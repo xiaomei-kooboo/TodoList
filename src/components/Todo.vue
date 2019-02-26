@@ -1,45 +1,91 @@
 <template>
   <div class="todo">
-    <h1>{{ msg }}</h1>
+    <h1>╰✿ {{ msg }}</h1>
     <div class="todo_header">
-      <input class="inputTodo" placeholder="what do you want to do?" autofocus=""  v-model.trim="newTodo"  @keyup.enter="addTodo()">
+      <input class="inputTodo" placeholder="Please enter what you want to do?" autofocus=""  v-model.trim="newTodo"  @keyup.enter="addTodo()">
       <div class="showTodoPart">
         <ul class="showTodoUl">
-          <li v-for="(text, index) in todoLists" :key = "index">
+          <li v-for="(todo, index) in todoLists" :key = "index"
+              :class="{completed: todo.isChecked, editing: index === editingIndex}">
             <div class="view">
-              <input class="toggle" type="checkbox" v-model="isChecked"/>
-              <label>{{ todoLists[index]}}</label>
-              <button class="deleteMark" @click="deteleTodo(index)"></button>
+              <input type="checkbox" class="toggle" v-model="todo.isChecked">
+              <label @dblclick="editTodo(index)" >{{ todo.text }}</label>
+              <button class="deleteMark" @click.stop="deteleTodo(index)"></button>
             </div>
+            <input type="text" class="edit" v-model="todo.text" v-focus="index === editingIndex" @blur="saveTodo(todo)" @keyup.enter="saveTodo(todo)">
           </li>
         </ul>
+        <div class="showComplete">
+          <p class="countComplete">{{ activeCount }} Items Left (⌒▽⌒)</p>
+          <p class="clearComplete" @click="clearComplete">clear completed</p>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
-<script lang=i"ts">
-import { Component, Prop, Vue } from 'vue-property-decorator'
+<script lang="ts">
+import { Component, Prop, Vue, Watch } from 'vue-property-decorator'
 import _ from 'lodash'
+import focus from '../scripts/directive'
+import { interfaces } from 'mocha'
 
-@Component
+@Component({
+  directives: {
+    focus
+  }
+})
 export default class Todo extends Vue {
-  @Prop() private msg!: string
+  @Prop() msg!: string
 
   newTodo: string = ''
-  isChecked: boolean = false
-  todoLists:string[] = ['学习TS']
-
+  editingIndex: number = -1
+  todoLists: any[] = []
   addTodo(): void {
     this.newTodo = this.newTodo.trim()
+
     if(this.newTodo.length < 1) return
-    this.todoLists.push( this.newTodo )
+
+    this.todoLists.unshift({
+      text: this.newTodo,
+      isChecked: false
+    })
     this.newTodo = ''
+    this.save()
   }
 
   deteleTodo(index:number): void {
-    console.log(this.todoLists, index)
     this.todoLists.splice(index, 1)
+    this.save()
+  }
+
+  editTodo(index:number): void {
+    this.editingIndex = index
+  }
+
+  saveTodo(todo:string): void {
+    this.editingIndex = -1
+    this.save()
+  }
+  save(): void {
+   window.localStorage.setItem("content", JSON.stringify(this.todoLists))
+  }
+
+  created() {
+    let todoStorage = window.localStorage.getItem('content')
+    if(todoStorage === null) {
+      return
+    } else {
+    this.todoLists = JSON.parse(todoStorage) || []
+    }
+  }
+  clearComplete(todo:any[]): void {
+    this.todoLists = this.todoLists.filter(todo => todo.isChecked === false)
+    console.log('clear complete', this.todoLists)
+    this.save()
+  }
+  get activeCount():number {    
+    return this.todoLists.filter(todo => todo.isChecked === false).length
   }
 }
 </script>
@@ -82,7 +128,7 @@ export default class Todo extends Vue {
   list-style: none;
 }
 .showTodoUl li {
-  margin: 25px 0 15px 0;
+  margin: 20px 0 10px 0;
 }
 .view {
   position: relative;
@@ -98,7 +144,7 @@ export default class Todo extends Vue {
 	display: none;
 	position: absolute;
 	top: 0;
-	right: 50px;
+	right: 25px;
 	bottom: 0;
 	width: 25px;
 	height: 25px;
@@ -109,7 +155,6 @@ export default class Todo extends Vue {
 	transition: color 0.2s ease-out;
   border: none;
   background-color: transparent;
-  font-size: 30px;
 }
 .showTodoUl li .deleteMark:after {
 	content: '×';
@@ -117,5 +162,64 @@ export default class Todo extends Vue {
 .showTodoUl li:hover .deleteMark {
 	display: block;
 }
-
+.showTodoUl .editing {
+  border-bottom: none;
+  padding: 0;
+}
+.showTodoUl .editing .view {
+  display: none;
+}
+.showTodoUl .view label {
+  font-size: 22px;
+}
+.showTodoUl li .edit {
+  display: none;
+}
+.showTodoUl .editing .edit {
+  display: block;
+  width: 400px;
+  padding: 8px 8px;
+  margin: 0 0 0 43px;
+  margin: 0 auto;
+  background-color: transparent;
+  border: none;
+  border-bottom: 1px solid lightsteelblue;
+  font-size: 22px;
+  color: mistyrose;
+  font-family: monospace;
+}
+.showComplete {
+  color: aliceblue;
+  font-size: 20px;
+}
+.showComplete .countComplete{
+  position: absolute;
+  bottom: 8%;
+  left: 5%;
+}
+.showComplete .clearComplete {
+  position: absolute;
+  bottom: 8%;
+  right: 5%;
+  cursor: pointer;
+}
+.clearComplete:hover {
+  text-decoration: underline;
+}
+.showTodoUl .completed label {
+  color: #d9d9d9;
+  text-decoration: line-through;
+}
+.showTodoUl li .toggle {
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  top: 4px;
+  bottom: 0;
+  left: 26%;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 50%;
+  border: 1px solid mistyrose;
+}
 </style>

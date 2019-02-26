@@ -17,7 +17,7 @@ yarn run build
 
 ### Run your tests
 ```
-yarn run test
+yarn run tst
 ```
 
 ### Lints and fixes files
@@ -37,3 +37,4 @@ yarn run test:unit
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
